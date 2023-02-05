@@ -1,34 +1,30 @@
 from apps.models.DatabaseManager import db, func
 from datetime import datetime
 
-
-
 class User(db.Model):
     __tablename__ = 'User'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)
+    fname = db.Column(db.String(200), nullable=False)
+    lname = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), nullable=False)
-    password = db.Column(db.String(500), nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-
-    level = db.Column(db.Integer, nullable=False)
     exp = db.Column(db.Integer, nullable=False)
 
-
-
-
-    def __init__(self, email, password):
+    def __init__(self, fname, lname, email):
         user = User.getUserbyEmail(email)
         if user != None : 
             self = user
         else:
+            self.fname = fname
+            self.lname = lname
             self.email = email
-            self.password = sha256_crypt.encrypt(password)
+            self.exp = 0
 
-
+    def toJson(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
     def pushToDB(self, db):
-        if self.alreadyExist(): return False
+        if User.exist(self.email): return False
         try:
             db.session.add(self)
             db.session.commit()
@@ -36,13 +32,18 @@ class User(db.Model):
         except:
             return False
 
-
-
     @classmethod
     def exist(self, email):
         return bool(User.query.filter(func.lower(User.email) == func.lower(email)).first())
 
-
     @classmethod
     def getUserbyEmail(self, email):
         return User.query.filter(func.lower(User.email) == func.lower(email)).first()
+
+    @classmethod
+    def getById(self, id):
+        return User.query.get(id)
+    
+    @classmethod
+    def getAll(self):
+        return User.query.all()
